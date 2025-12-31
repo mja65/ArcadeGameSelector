@@ -328,6 +328,7 @@ PROC select(init_offset, init_pos) OF ags
         IF screenshot_ctr++ = (REPEAT_DELAY + 1)
             self.load_screenshot()
             self.load_text()
+            self.load_text2()
         ENDIF
 
     UNTIL quit
@@ -460,33 +461,20 @@ PROC redraw(start=0, end=-1) OF ags
                       $050)
 ENDPROC
 
-PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
+PROC get_item_path(path:LONG, suffix:PTR TO CHAR, dir_ptr:LONG) OF ags
     DEF item:PTR TO agsnav_item
-    DEF first_char[2]:STRING  -> A small buffer to hold the single letter
+    DEF first_char[2]:STRING
 
     item := self.nav.items[self.current_item + self.offset]
-
-/* 1. Extract the first character and make it a valid string */
     first_char[0] := item.name[0]
-    first_char[1] := 0            -> Null-terminate the character so it acts as a string
-    SetStr(first_char, 1)         -> Set the E-string length to 1
+    first_char[1] := 0
+    SetStr(first_char, 1)
 
-    IF StrCmp(suffix, '.txt')
-        /* Use parameter from config */
-        StrCopy(path, self.conf.text_dir)
-        StrAdd(path, first_char)  -> Add 'A/'
-        StrAdd(path, '/')
-        StrAdd(path, item.name)
-        StrAdd(path, suffix)
-    ELSEIF StrCmp(suffix, '.iff')
-        /* Use parameter from config */
-        StrCopy(path, self.conf.screenshot_dir)
-        StrAdd(path, first_char)  -> Add 'A/'
-        StrAdd(path, '/')        
-        StrAdd(path, item.name)
-        StrAdd(path, suffix)
-    ENDIF
-
+    StrCopy(path, dir_ptr)
+    StrAdd(path, first_char)
+    StrAdd(path, '/')
+    StrAdd(path, item.name)
+    StrAdd(path, suffix)
 ENDPROC
 
 PROC load_screenshot() OF ags
@@ -505,7 +493,7 @@ PROC load_screenshot() OF ags
     IF FileLength(run_path) <> -1
     /* It is a game entry! Load the actual screenshot */
 
-        self.get_item_path(path, '.iff')
+        self.get_item_path(path, '.iff', self.conf.screenshot_dir)
         PrintF('DEBUG: Path built for image: \s\n', path)
         IF FileLength(path) = -1
             PrintF('DEBUG: Fallback Path for image: \s\n', self.conf.missing_screenshot)
@@ -550,7 +538,7 @@ PROC load_text() OF ags HANDLE
 
     IF FileLength(run_path) <> -1
         /* CASE A: It's a game. Use the global GameText folder logic */
-        self.get_item_path(path, '.txt')
+        self.get_item_path(path, '.txt', self.conf.text_dir)
 
     ELSE
         /* CASE B: It's a folder. Look for [ItemName].txt in the current menu folder */
@@ -603,6 +591,67 @@ EXCEPT DO
     IF fh THEN Close(fh)
 ENDPROC
 
+PROC load_text2() OF ags HANDLE
+    DEF path[255]:STRING, run_path[255]:STRING
+    DEF item:PTR TO agsnav_item
+    DEF len, line = NIL, fh = NIL, linenum = 0, y
+    DEF bufsize, adjust_read
+
+    IF self.conf.text2_height = 0 THEN RETURN
+    
+    SetAPen(self.rport, self.conf.text2_background)
+    RectFill(self.rport, self.conf.text2_x, self.conf.text2_y,
+             self.conf.text2_x + (self.conf.text2_width * self.font.xsize) - 1,
+             self.conf.text2_y + (self.conf.text2_height * (self.font.ysize + self.conf.font_leading)) - 1)
+
+    item := self.nav.items[self.current_item + self.offset]
+    StrCopy(run_path, self.nav.path)
+    StrAdd(run_path, item.name)
+    StrAdd(run_path, '.run')
+
+    IF FileLength(run_path) <> -1
+        self.get_item_path(path, '.txt', self.conf.text2_dir)
+    ELSE
+        StrCopy(path, self.nav.path)
+        StrAdd(path, item.name)
+        StrAdd(path, '.txt2')  -> Folder descriptions for Area 2 use .txt2 extension
+        IF FileLength(path) = -1 THEN RETURN
+    ENDIF
+
+    bufsize := self.conf.text2_width + 2
+    line := String(bufsize)
+    IF KickVersion(39) THEN adjust_read := 0 ELSE adjust_read := 1
+
+    SetAPen(self.rport, self.conf.text2_color)
+    SetBPen(self.rport, self.conf.text2_background)
+    SetDrMd(self.rport, RP_JAM2)
+
+   fh := Open(path, OLDFILE) /* Remove the IF from this line */
+    IF fh
+        WHILE (linenum < self.conf.text2_height) AND Fgets(fh, line, bufsize - adjust_read)
+            len := StrLen(line)
+
+            IF (len > 0) AND (line[len - 1] = "\n")
+                len := len - 1
+                line[len] := 0
+            ENDIF
+
+            SetStr(line, Min(len, self.conf.text2_width))
+            IF EstrLen(line) > 0
+                y := self.conf.text2_y + self.font.baseline + ((self.font.ysize + self.conf.font_leading) * linenum)
+                Move(self.rport, self.conf.text2_x, y)
+                Text(self.rport, line, EstrLen(line))
+            ENDIF
+            INC linenum
+        ENDWHILE
+        Close(fh)
+        fh := NIL /* Set to NIL so the EXCEPT block doesn't try to close it again */
+    ENDIF
+
+EXCEPT DO
+    IF line THEN DisposeLink(line)
+    IF fh THEN Close(fh) /* This only runs if an actual crash/exception happened */
+ENDPROC
 
 PROC main() HANDLE
     DEF conf = NIL:PTR TO agsconf

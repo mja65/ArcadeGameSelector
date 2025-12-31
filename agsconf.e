@@ -39,6 +39,7 @@ EXPORT OBJECT agsconf
     screenshot_x:INT -> = 304
     screenshot_y:INT -> = 8
     text_dir:LONG
+    text2_dir:LONG
     screenshot_dir:LONG
     empty_screenshot:LONG -> PTR TO STRING -> AGS:Empty.iff
     missing_screenshot:LONG -> PTR TO STRING -> AGS:Empty.iff
@@ -48,6 +49,12 @@ EXPORT OBJECT agsconf
     text_height:INT
     text_color:INT -> = 255
     text_background:INT -> = 254
+    text2_x:INT
+    text2_y:INT
+    text2_width:INT
+    text2_height:INT
+    text2_color:INT        
+    text2_background:INT
 
     blue_button_action:LONG -> AGSCONF_ACTION_QUIT
 
@@ -61,6 +68,7 @@ PROC init() OF agsconf
     self.background := String(128)
     self.font_name := String(32)
     self.text_dir := String(128)
+    self.text2_dir := String(128)
     self.screenshot_dir := String(128)
     self.empty_screenshot := String(128)
     self.missing_screenshot := String(128)
@@ -69,6 +77,8 @@ PROC init() OF agsconf
     self.depth := AGSCONF_AUTODETECT
     self.text_color := 255
     self.text_background := 254
+    self.text2_color := 255
+    self.text2_background := 254
     self.lock_colors := 4
 
     StrCopy(self.font_name, 'topaz.font')
@@ -89,6 +99,11 @@ PROC init() OF agsconf
     self.text_width := 40
     self.text_height := (248 - self.text_y) / self.font_size
 
+    self.text2_x := 304
+    self.text2_y := 200
+    self.text2_width := 40
+    self.text2_height := (248 - self.text2_y) / self.font_size
+
     self.blue_button_action := AGSCONF_ACTION_QUIT
 
     self.slideshow_delay_secs := 0
@@ -99,7 +114,8 @@ ENDPROC
 PROC end() OF agsconf
     DisposeLink(self.background)
     DisposeLink(self.font_name)
-    DisposeLink(self.text_dir)
+    DisposeLink(self.text_dir)  
+    DisposeLink(self.text2_dir)
     DisposeLink(self.screenshot_dir)
     DisposeLink(self.empty_screenshot)
     DisposeLink(self.missing_screenshot)
@@ -116,6 +132,8 @@ PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
         StrCopy(self.empty_screenshot, value)
     ELSEIF StrCmp(key, 'text_dir')
         StrCopy(self.text_dir, value)
+    ELSEIF StrCmp(key, 'text2_dir')
+        StrCopy(self.text2_dir, value)
     ELSEIF StrCmp(key, 'screenshot_dir')
         StrCopy(self.screenshot_dir, value)        
     ELSEIF StrCmp(key, 'missing_screenshot')
@@ -163,6 +181,14 @@ PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
             self.text_width := num
         ELSEIF StrCmp(key, 'text_height')
             self.text_height := num
+        ELSEIF StrCmp(key, 'text2_x')
+            self.text2_x := num
+        ELSEIF StrCmp(key, 'text2_y')
+            self.text2_y := num
+        ELSEIF StrCmp(key, 'text2_width')
+            self.text2_width := num
+        ELSEIF StrCmp(key, 'text2_height')
+            self.text2_height := num            
         ELSEIF StrCmp(key, 'slideshow_delay_secs')
             self.slideshow_delay_secs := num
         ELSEIF StrCmp(key, 'slideshow_start_index')

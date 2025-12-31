@@ -27,7 +27,7 @@ ENUM ERR_NONE, ERR_ECODE, ERR_CREATEPORT, ERR_CREATETIMER
 ENUM LDR_LOADING, LDR_QUITTING
 
 
-CONST PATH_LEN=100
+CONST PATH_LEN=255
 
 OBJECT loader
     port:PTR TO mp
@@ -93,7 +93,7 @@ PROC main() HANDLE
     DEF path[PATH_LEN]:STRING
     DEF old_path[PATH_LEN]:STRING
     DEF curr_img = 0
-
+    DEF p_len
     -> Slideshow vars
     DEF tr:PTR TO timerequest
     DEF timer_msgport:PTR TO mp
@@ -210,6 +210,15 @@ PROC main() HANDLE
                     -> Try to find an indexed screenshot
                     FOR i := 0 TO slideshow_range_size
                         StrCopy(path, ldr.img_path)
+                    
+                    /* NEW: If the path already has .iff, strip it for the index logic */
+                    IF (EstrLen(path) > 4)                     
+                        p_len := EstrLen(path)
+                        IF (path[p_len-4] = ".") AND (path[p_len-3] = "i")
+                            SetStr(path, p_len - 4) -> Temporarily remove '.iff'
+                        ENDIF
+                    ENDIF
+
                         StringF(indexstring, '-\d', slideshow_index)
                         StrAdd(path, indexstring)
                         StrAdd(path, '.iff')
@@ -234,7 +243,8 @@ PROC main() HANDLE
                 -> If we haven't got an indexed image, fallback to standard file naming
                 IF have_indexed_image = 0
                     StrCopy(path, ldr.img_path)
-                    StrAdd(path, '.iff')
+                    /* PROBLEM: Your main script already adds .iff! */
+                    /* StrAdd(path, '.iff') <--- Comment this out if your main script sends the full path */
 
                     IF FileLength(path) = -1
                         -> Still didn't find an image file with standard

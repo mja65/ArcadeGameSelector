@@ -101,6 +101,7 @@ CONST RAWKEY_DOWN   = 77
 CONST RAWKEY_RIGHT  = 78
 CONST RAWKEY_LEFT   = 79
 CONST RAWKEY_RETURN = 68
+CONST RAWKEY_HOME   = 70
 
 PROC select(init_offset, init_pos) OF ags
     DEF key
@@ -144,6 +145,46 @@ PROC select(init_offset, init_pos) OF ags
                 ENDIF
             ENDIF
         ENDIF
+
+      -> Home
+
+        IF rawkey = 70
+            index := 0
+            item := self.nav.items[index]
+            IF item.type = AGSNAV_TYPE_DIR
+                IF self.nav.depth AND (index = 0) AND (StrCmp(self.nav.path, 'AGS:Menu/') = FALSE)
+                    StrCopy(path, self.nav.path)
+                    pos := EstrLen(path) - 1
+                    len := 0
+                    REPEAT
+                        DEC pos
+                        INC len
+                    UNTIL (path[pos] = "/") OR (path[pos] = ":")
+                    INC pos
+                    RightStr(prev_item, path, len)
+                    SetStr(prev_item, len - 5)
+                    path[pos] := 0
+                    SetStr(path, pos)
+                        self.current_item := 0
+                        should_redraw := 1
+                    self.nav.set_path(path)
+                    self.nav.depth := self.nav.depth - 1
+                    self.reload(0, 0, prev_item)
+                    screenshot_ctr := 0
+                ELSEIF self.nav.depth < 6
+                    StrCopy(path, self.nav.path)
+                    StrAdd(path, item.name)
+                    StrAdd(path, '.ags/')
+                    self.nav.set_path(path)
+                    self.nav.depth := self.nav.depth + 1
+                    self.reload()
+                    screenshot_ctr := 0
+                ENDIF
+            ENDIF
+            REPEAT
+                rawkey := GetKey() AND $ffff
+            UNTIL rawkey <> 70
+        ENDIF       
 
         -> Up / Down
         IF (portstate AND JPF_JOY_UP) OR (rawkey = RAWKEY_UP)
@@ -239,7 +280,7 @@ PROC select(init_offset, init_pos) OF ags
             index := self.current_item + self.offset
             item := self.nav.items[index]
             IF item.type = AGSNAV_TYPE_DIR
-                IF self.nav.depth AND (index = 0) -> Go to parent dir.
+                IF self.nav.depth AND (index = 0) AND (StrCmp(self.nav.path, 'AGS:Menu/') = FALSE) -> Go to parent dir.
                     StrCopy(path, self.nav.path)
                     pos := EstrLen(path) - 1
                     len := 0
@@ -421,22 +462,67 @@ ENDPROC
 
 PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
     DEF item:PTR TO agsnav_item
+    DEF first_char[2]:STRING  -> A small buffer to hold the single letter
 
     item := self.nav.items[self.current_item + self.offset]
-    StrCopy(path, self.nav.path)
-    StrAdd(path, item.name)
-    StrAdd(path, suffix)
+
+/* 1. Extract the first character and make it a valid string */
+    first_char[0] := item.name[0]
+    first_char[1] := 0            -> Null-terminate the character so it acts as a string
+    SetStr(first_char, 1)         -> Set the E-string length to 1
+
+    IF StrCmp(suffix, '.txt')
+        /* Use parameter from config */
+        StrCopy(path, self.conf.text_dir)
+        StrAdd(path, first_char)  -> Add 'A/'
+        StrAdd(path, '/')
+        StrAdd(path, item.name)
+        StrAdd(path, suffix)
+    ELSEIF StrCmp(suffix, '.iff')
+        /* Use parameter from config */
+        StrCopy(path, self.conf.screenshot_dir)
+        StrAdd(path, first_char)  -> Add 'A/'
+        StrAdd(path, '/')        
+        StrAdd(path, item.name)
+        StrAdd(path, suffix)
+    ENDIF
+
 ENDPROC
 
 PROC load_screenshot() OF ags
-    DEF path[100]:STRING
+    DEF path[255]:STRING
+    DEF run_path[255]:STRING
+    DEF item:PTR TO agsnav_item
 
-    self.get_item_path(path, '')
-    self.loader.send_cmd(AGSIL_LOAD, path)
+    item := self.nav.items[self.current_item + self.offset]
+
+    /* 1. Build the path to the potential .run file */
+    StrCopy(run_path, self.nav.path)
+    StrAdd(run_path, item.name)
+    StrAdd(run_path, '.run')
+
+/* 2. Check if the .run file exists */
+    IF FileLength(run_path) <> -1
+    /* It is a game entry! Load the actual screenshot */
+
+        self.get_item_path(path, '.iff')
+        PrintF('DEBUG: Path built for image: \s\n', path)
+        IF FileLength(path) = -1
+            PrintF('DEBUG: Fallback Path for image: \s\n', self.conf.missing_screenshot)
+            self.loader.send_cmd(AGSIL_LOAD, self.conf.missing_screenshot)
+        ELSE
+            self.loader.send_cmd(AGSIL_LOAD, path)
+        ENDIF
+    ELSE
+        /* It is a directory or non-game entry. Load the empty/background image */
+        self.loader.send_cmd(AGSIL_LOAD, self.conf.empty_screenshot)
+    ENDIF
 ENDPROC
 
 PROC load_text() OF ags HANDLE
-    DEF path[100]:STRING
+    DEF path[255]:STRING
+    DEF run_path[255]:STRING
+    DEF item:PTR TO agsnav_item
     DEF len
     DEF line = NIL
     DEF bufsize = 0
@@ -446,7 +532,8 @@ PROC load_text() OF ags HANDLE
     DEF y
 
     IF self.conf.text_height = 0 THEN Raise(0)
-
+    
+    /* 1. Clear the text area */
     SetAPen(self.rport, self.conf.text_background)
     RectFill(self.rport,
              self.conf.text_x,
@@ -454,11 +541,32 @@ PROC load_text() OF ags HANDLE
              self.conf.text_x + (self.conf.text_width * self.font.xsize) - 1,
              self.conf.text_y + (self.conf.text_height * (self.font.ysize + self.conf.font_leading)) - 1)
 
-    self.get_item_path(path, '.txt')
-    IF FileLength(path) = -1 THEN Raise(0)
+    item := self.nav.items[self.current_item + self.offset]
 
+    /* 2. Check if it's a game (.run file exists) */
+    StrCopy(run_path, self.nav.path)
+    StrAdd(run_path, item.name)
+    StrAdd(run_path, '.run')
+
+    IF FileLength(run_path) <> -1
+        /* CASE A: It's a game. Use the global GameText folder logic */
+        self.get_item_path(path, '.txt')
+
+    ELSE
+        /* CASE B: It's a folder. Look for [ItemName].txt in the current menu folder */
+        /* If item name is "Shooters", it looks for "AGS:Menu/Path/Shooters.txt" */
+        StrCopy(path, self.nav.path)
+        StrAdd(path, item.name)
+        StrAdd(path, '.txt')
+        PrintF('DEBUG: Path built for folder text: \s\n', path)
+        /* If no description exists for this folder, just exit */
+        IF FileLength(path) = -1 THEN RETURN
+    ENDIF
+
+    /* 3. Load the file found in 'path' */
     bufsize := self.conf.text_width + 2
     line := String(bufsize)
+
     -> Work around Fgets() bug in V36/V37.
     IF KickVersion(39) THEN adjust_read := 0 ELSE adjust_read := 1
 
@@ -598,9 +706,16 @@ PROC main() HANDLE
     menu_pos.read()
 
     NEW nav.init()
-    nav.set_path(menu_pos.path)
-    nav.depth := menu_pos.depth
 
+    /* If no saved path exists, or path is just root, force it to Menu/ */
+    IF (StrLen(menu_pos.path) = 0) OR (StrCmp(menu_pos.path, 'AGS:'))
+        nav.set_path('AGS:Menu/')
+        nav.depth := 0
+    ELSE
+        nav.set_path(menu_pos.path)
+        nav.depth := menu_pos.depth
+    ENDIF
+    
     NEW ags.init(conf, nav, loader, w.rport, font)
     ags.select(menu_pos.offset, menu_pos.pos)
     fade_out_vport(s.viewport, Shl(1, s_depth), 10)

@@ -38,8 +38,10 @@ EXPORT OBJECT agsconf
 
     screenshot_x:INT -> = 304
     screenshot_y:INT -> = 8
+    text_dir:LONG
+    screenshot_dir:LONG
     empty_screenshot:LONG -> PTR TO STRING -> AGS:Empty.iff
-
+    missing_screenshot:LONG -> PTR TO STRING -> AGS:Empty.iff
     text_x:INT
     text_y:INT
     text_width:INT
@@ -58,8 +60,10 @@ ENDOBJECT
 PROC init() OF agsconf
     self.background := String(128)
     self.font_name := String(32)
+    self.text_dir := String(128)
+    self.screenshot_dir := String(128)
     self.empty_screenshot := String(128)
-
+    self.missing_screenshot := String(128)
     StrCopy(self.background, 'AGS:AGS2Background.iff')
     self.mode := AGSCONF_AUTODETECT
     self.depth := AGSCONF_AUTODETECT
@@ -79,6 +83,7 @@ PROC init() OF agsconf
     self.screenshot_y := 8
     StrCopy(self.empty_screenshot, 'AGS:Empty.iff')
 
+    StrCopy(self.missing_screenshot, 'AGS:Missing.iff')
     self.text_x := 304
     self.text_y := 144
     self.text_width := 40
@@ -94,7 +99,10 @@ ENDPROC
 PROC end() OF agsconf
     DisposeLink(self.background)
     DisposeLink(self.font_name)
+    DisposeLink(self.text_dir)
+    DisposeLink(self.screenshot_dir)
     DisposeLink(self.empty_screenshot)
+    DisposeLink(self.missing_screenshot)
 ENDPROC
 
 PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
@@ -106,6 +114,12 @@ PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
         StrCopy(self.font_name, value)
     ELSEIF StrCmp(key, 'empty_screenshot')
         StrCopy(self.empty_screenshot, value)
+    ELSEIF StrCmp(key, 'text_dir')
+        StrCopy(self.text_dir, value)
+    ELSEIF StrCmp(key, 'screenshot_dir')
+        StrCopy(self.screenshot_dir, value)        
+    ELSEIF StrCmp(key, 'missing_screenshot')
+        StrCopy(self.missing_screenshot, value)
     ELSEIF StrCmp(key, 'blue_button_action')
         IF StrCmp(value, 'quit')
             self.blue_button_action := AGSCONF_ACTION_QUIT

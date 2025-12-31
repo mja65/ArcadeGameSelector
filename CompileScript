@@ -1,0 +1,12 @@
+evo agsmenupos.e
+evo agsdefs.e
+evo palfade.e
+evo rgbcolor.e
+evo agsconf.e
+evo agsnav.e
+evo agsil.e
+evo benchmark.e
+evo ilbmloader.e
+evo AGS2.e 
+evo AGS2Menu.e 
+evo AGS2Helper.e 

@@ -38,6 +38,7 @@ EXPORT OBJECT agsconf
 
     screenshot_x:INT -> = 304
     screenshot_y:INT -> = 8
+    text2_enabled:INT
     text_dir:LONG
     text2_dir:LONG
     screenshot_dir:LONG
@@ -67,6 +68,7 @@ ENDOBJECT
 PROC init() OF agsconf
     self.background := String(128)
     self.font_name := String(32)
+    self.text2_enabled := FALSE
     self.text_dir := String(128)
     self.text2_dir := String(128)
     self.screenshot_dir := String(128)
@@ -181,6 +183,12 @@ PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
             self.text_width := num
         ELSEIF StrCmp(key, 'text_height')
             self.text_height := num
+        ELSEIF StrCmp(key, 'text2_enabled')
+            IF StrCmp(value, 'true') OR StrCmp(value, '1')
+                self.text2_enabled := TRUE
+            ELSE
+                self.text2_enabled := FALSE
+            ENDIF
         ELSEIF StrCmp(key, 'text2_x')
             self.text2_x := num
         ELSEIF StrCmp(key, 'text2_y')

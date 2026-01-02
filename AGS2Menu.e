@@ -328,7 +328,9 @@ PROC select(init_offset, init_pos) OF ags
         IF screenshot_ctr++ = (REPEAT_DELAY + 1)
             self.load_screenshot()
             self.load_text()
-            self.load_text2()
+            IF self.conf.text2_enabled
+                self.load_text2()
+            ENDIF
         ENDIF
 
     UNTIL quit

@@ -390,7 +390,7 @@ PROC create_menu_bitmap() OF ags HANDLE
     DEF line
     DEF item:PTR TO agsnav_item
     DEF y
-    DEF i
+    -> DEF i
 
     -> Allocate a single bitplane bitmap for the menu text.
     self.menu_bm_width := (self.width + 2) * self.char_width

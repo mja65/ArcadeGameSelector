@@ -168,7 +168,7 @@ PROC select(init_offset, init_pos) OF ags
                         self.current_item := 0
                         should_redraw := 1
                     self.nav.set_path(path)
-                    self.nav.depth := self.nav.depth - 1
+                    IF self.nav.depth > 0 THEN self.nav.depth := self.nav.depth - 1
                     self.reload(0, 0, prev_item)
                     screenshot_ctr := 0
                 ELSEIF self.nav.depth < 6
@@ -417,7 +417,7 @@ PROC create_menu_bitmap() OF ags HANDLE
         Text(self.menu_rastport, item.name, item.length)
     ENDFOR
 EXCEPT
-    IF bm.planes[i] <> NIL THEN FreeRaster(bm.planes[i], self.menu_bm_width, self.menu_bm_height)
+    IF bm.planes[0] <> NIL THEN FreeRaster(bm.planes[0], self.menu_bm_width, self.menu_bm_height)
     END bm
     END rp
     ReThrow()

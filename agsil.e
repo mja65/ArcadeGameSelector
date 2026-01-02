@@ -58,6 +58,7 @@ ENDPROC
 
 PROC end() OF agsil_master
     DEF port:PTR TO mp
+    DEF wait_count = 0
 
     IF self.send_quit
         self.msg.action := AGSIL_QUIT
@@ -67,10 +68,22 @@ PROC end() OF agsil_master
             IF port THEN PutMsg(port, self.msg)
         Permit()
         IF port
+            /* Wait for the helper to acknowledge the QUIT signal */
             WaitPort(self.replyport)
-            GetMsg(self.replyport)
+            WHILE GetMsg(self.replyport) DO NIL /* Drain any stray replies */
+
+            /* --- NEW: Wait for the Helper to actually close the port --- */
+            REPEAT
+                Delay(2)
+                Forbid()
+                port := FindPort(AGSIL_PORTNAME)
+                Permit()
+                wait_count++
+            UNTIL (port = NIL) OR (wait_count >  50) /* Wait max ~2 secs */
+
         ENDIF
     ENDIF
+    /* Cleanup local resources */
     IF self.msg THEN Dispose(self.msg)
     IF self.replyport THEN DeleteMsgPort(self.replyport)
 ENDPROC

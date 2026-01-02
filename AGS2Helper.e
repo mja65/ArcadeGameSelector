@@ -56,6 +56,8 @@ PROC softint_handler(ldr:PTR TO loader)
     SELECT action
         CASE AGSIL_QUIT
             ldr.status := LDR_QUITTING
+            msg.reply := 1  -> Signal acknowledgment
+            /* Don't do anything else, just let the main loop exit */
         CASE AGSIL_SETRPORT
             ldr.rport := msg.arg
         CASE AGSIL_SETVPORT
@@ -308,16 +310,29 @@ PROC main() HANDLE
     ENDIF
 
 EXCEPT DO
-    END il
+    /* 1. Unpublish the port so the Menu can't find it or send more messages */
     IF port
-        IF port.ln.name THEN RemPort(port)
-        port.sigtask := -1
-        port.msglist.head := -1
-        Dispose(port)
+        Forbid()
+        IF FindPort(AGSIL_PORTNAME) THEN RemPort(port)
+        Permit()
     ENDIF
+
+    /* 2. Deactivate the SoftInt before freeing its code/data */
+    IF softint
+        softint.code := NIL
+        softint.data := NIL
+    ENDIF
+
+    /* 3. Free resources in reverse order of allocation */
+    IF il THEN END il
+    IF port THEN Dispose(port)
     IF softint THEN Dispose(softint)
-    IF ldr.img_path THEN DisposeLink(ldr.img_path)
-    IF ldr THEN Dispose(ldr)
+    
+    /* 4. Use DisposeLink for the shared string */
+    IF ldr
+        IF ldr.img_path THEN DisposeLink(ldr.img_path)
+        Dispose(ldr)
+    ENDIF
     SELECT exception
         CASE "MEM"
             PrintF('Out of memory\n')

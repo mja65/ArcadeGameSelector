@@ -1,6 +1,28 @@
 ArcadeGameSelector 2
 ====================
 
+This is a fork of the ArcadeGameSelector 2 program from MagerValp. Probably now most known for its use in the AGS distribution. 
+
+Note this is WIP and will have issues! 
+
+It is intended to fix some issues with the existing program such as:
+
+* Fixing issue where screenshots do not load properly if you run a game prior to starting it
+* Allowing for consolidation of screenshots and text descriptions into single folders so that where games and demos are in multiple categories there is no need to have the same files duplicated
+
+Extra settings needed:
+
+* screenshot_dir= (path to folder with trailing /)
+* text_dir= (path to folder with trailing /)
+
+
+This was done with the assistance of AI.....
+
+Original Readme is below:
+
+ArcadeGameSelector 2 (Original Readme)
+====================
+
 AGS2 is a joystick controlled menu program for the Amiga.
 
 

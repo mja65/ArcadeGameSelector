@@ -774,17 +774,25 @@ PROC main() HANDLE
     loader.stop()
 
 EXCEPT DO
+    /* 1. Stop the background process first while hardware is still locked */
+    IF loader THEN loader.stop()
+
+    /* 2. Free your custom bitmaps and objects */
     END ags
     END nav
     END loader
     END il
+    END menu_pos
+    
+    /* 3. Close the UI */
     IF font THEN CloseFont(font)
     IF pointer THEN Dispose(pointer)
     IF w THEN CloseWindow(w)
     IF s THEN CloseScreen(s)
+
+    /* 4. Release system libs */
     SetJoyPortAttrsA(1, [SJA_REINITIALIZE, 0, 0])
     END conf
-    END menu_pos
     IF lowlevelbase THEN CloseLibrary(lowlevelbase)
     SELECT exception
         CASE "MEM"

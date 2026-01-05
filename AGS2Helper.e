@@ -189,6 +189,7 @@ PROC main() HANDLE
             Disable()
                 curr_img := ldr.img_num
                 have_indexed_image := 0
+                skip_central := FALSE
 
                 /* 1. Exclusion Check */
                 IF (StrLen(ldr.conf.exclude_central_location) > 0)

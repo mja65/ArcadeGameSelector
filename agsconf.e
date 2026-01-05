@@ -52,6 +52,10 @@ EXPORT OBJECT agsconf
     slideshow_delay_secs:INT -> = 0 (disabled)
     slideshow_start_index:INT -> = 1
     slideshow_end_index:INT -> = 7
+    menu_folder:LONG -> PTR TO STRING
+    screenshot_dir:LONG -> PTR TO STRING
+    text_dir:LONG -> PTR TO STRING
+    exclude_central_location:LONG -> PTR TO STRING
 ENDOBJECT
 
 -> Initialize with default configuration.
@@ -59,6 +63,10 @@ PROC init() OF agsconf
     self.background := String(128)
     self.font_name := String(32)
     self.empty_screenshot := String(128)
+    self.menu_folder := String(128)
+    self.screenshot_dir := String(128)
+    self.text_dir := String(128)
+    self.exclude_central_location := String(255)
 
     StrCopy(self.background, 'AGS:AGS2Background.iff')
     self.mode := AGSCONF_AUTODETECT
@@ -89,23 +97,39 @@ PROC init() OF agsconf
     self.slideshow_delay_secs := 0
     self.slideshow_start_index := 1
     self.slideshow_end_index := 7
+    StrCopy(self.menu_folder, 'AGS:Menu')
+    StrCopy(self.screenshot_dir, '')
+    StrCopy(self.text_dir, '')
+    StrCopy(self.exclude_central_location, '')
 ENDPROC
 
 PROC end() OF agsconf
     DisposeLink(self.background)
     DisposeLink(self.font_name)
     DisposeLink(self.empty_screenshot)
+    DisposeLink(self.menu_folder)
+    DisposeLink(self.screenshot_dir)
+    DisposeLink(self.text_dir)
+    DisposeLink(self.exclude_central_location)
 ENDPROC
 
 PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
     DEF num, read
-
+    PrintF('DEBUG: Trying to set Key: "\s" to Value: "\s"\n', key, value)
     IF StrCmp(key, 'background')
         StrCopy(self.background, value)
     ELSEIF StrCmp(key, 'font')
         StrCopy(self.font_name, value)
     ELSEIF StrCmp(key, 'empty_screenshot')
         StrCopy(self.empty_screenshot, value)
+    ELSEIF StrCmp(key, 'menu_folder')
+        StrCopy(self.menu_folder, value)
+    ELSEIF StrCmp(key, 'screenshot_dir')
+        StrCopy(self.screenshot_dir, value)
+    ELSEIF StrCmp(key, 'text_dir')
+        StrCopy(self.text_dir, value)
+    ELSEIF StrCmp(key, 'exclude_central_location')
+        StrCopy(self.exclude_central_location, value)
     ELSEIF StrCmp(key, 'blue_button_action')
         IF StrCmp(value, 'quit')
             self.blue_button_action := AGSCONF_ACTION_QUIT

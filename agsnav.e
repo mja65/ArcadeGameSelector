@@ -36,7 +36,12 @@ ENDOBJECT
 
 
 PROC init() OF agsnav
-    self.set_path('AGS:')
+    /* Path is now initialized via set_path using the config value in the main program */
+    self.path := NIL
+    self.depth := 0
+    self.num_items := 0
+    self.items := NIL
+    self.reserved := 0
 ENDPROC
 
 PROC set_path(path:PTR TO CHAR) OF agsnav
@@ -62,13 +67,14 @@ PROC clear(num_reserve:LONG) OF agsnav
             DisposeLink(item.name)
             END item
         ENDFOR
-        END self.items[self.reserved]
+        Dispose(self.items)
     ENDIF
     self.num_items := 0
+    self.items := NIL
 
     IF num_reserve
         IF self.depth THEN INC num_reserve
-        NEW self.items[num_reserve]
+        self.items := New(num_reserve * 4)
         self.reserved := num_reserve
         IF self.depth THEN self.add_item('..', AGSNAV_TYPE_DIR)
     ENDIF
@@ -175,7 +181,7 @@ PROC read_dir() OF agsnav HANDLE
     DEF next = NIL -> :PTR TO STRING
     DEF should_add
 
-    DEF name[30]:STRING
+    DEF name[60]:STRING
     DEF type
 
     -> Read the current directory with ExAll().
@@ -195,7 +201,7 @@ PROC read_dir() OF agsnav HANDLE
         IF eac.entries
             ead := buffer
             WHILE ead <> NIL
-                -> Only add directories and files ending with .run.
+                -> Only add directories and files ending with .run or .ags.
                 IF (ead.type > 0) AND str_ends_with(ead.name, '.ags')
                     should_add := TRUE
                 ELSEIF str_ends_with(ead.name, '.run')
@@ -206,7 +212,7 @@ PROC read_dir() OF agsnav HANDLE
                 IF should_add
                     -> For each entry allocate a string for the name and set the
                     -> first character to D for directories and F for files.
-                    next := String(StrLen(ead.name) + 1)
+                    next := String(StrLen(ead.name) + 2)
                     IF ead.type < 0
                         StrCopy(next, 'F')
                     ELSE
@@ -242,10 +248,11 @@ PROC read_dir() OF agsnav HANDLE
         next := Next(current)
         current := next
     ENDWHILE
-    DisposeLink(current)
+    DisposeLink(first)
 
 EXCEPT DO
     IF eac THEN FreeDosObject(DOS_EXALLCONTROL, eac)
     IF lock THEN UnLock(lock)
+    IF first THEN DisposeLink(first)
     ReThrow()
 ENDPROC self.num_items

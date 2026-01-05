@@ -607,9 +607,15 @@ PROC main() HANDLE
     menu_pos.read()
 
     NEW nav.init()
-    nav.set_path(menu_pos.path)
+    IF StrLen(menu_pos.path) > 4
+        nav.set_path(menu_pos.path)
+    ELSE
+        nav.set_path(conf.menu_folder)
+    ENDIF
     nav.depth := menu_pos.depth
 
+    PrintF('DEBUG: Navigator starting path: "\s" (Depth: \d)\n', nav.path, nav.depth)
+ 
     NEW ags.init(conf, nav, loader, w.rport, font)
     ags.select(menu_pos.offset, menu_pos.pos)
     fade_out_vport(s.viewport, Shl(1, s_depth), 10)

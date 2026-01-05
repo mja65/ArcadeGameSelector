@@ -432,6 +432,7 @@ PROC load_screenshot() OF ags
     DEF path[100]:STRING
 
     self.get_item_path(path, '')
+    PrintF('DEBUG: Requesting screenshot IFF: \s\n', path)
     self.loader.send_cmd(AGSIL_LOAD, path)
 ENDPROC
 
@@ -456,6 +457,14 @@ PROC load_text() OF ags HANDLE
 
     self.get_item_path(path, '.txt')
     IF FileLength(path) = -1 THEN Raise(0)
+    PrintF('DEBUG: Searching for text file: \s\n', path)
+    
+    IF FileLength(path) = -1
+        PrintF('DEBUG: Text file NOT found.\n')
+        Raise(0)
+    ENDIF
+
+    PrintF('DEBUG: Text file found, loading...\n')
 
     bufsize := self.conf.text_width + 2
     line := String(bufsize)
@@ -508,7 +517,7 @@ PROC main() HANDLE
     DEF s_mode
     DEF ta:textattr
     DEF font = NIL:PTR TO textfont
-    DEF loader = NIL:PTR TO agsil_master    -> Background image loader master object.
+    DEF loader = NIL:PTR TO agsil_master     -> Background image loader master object.
     DEF reply
     DEF nav = NIL:PTR TO agsnav             -> Menu directory navigator.
     DEF ags = NIL:PTR TO ags                -> Application controller.

@@ -223,6 +223,7 @@ PROC main() HANDLE
 
                         -> Check if file exists
                         IF FileLength(path) <> -1
+                            PrintF('DEBUG: Found indexed image: \s\n', path)
                             have_indexed_image := 1
                         ENDIF
 
@@ -237,9 +238,12 @@ PROC main() HANDLE
                     StrAdd(path, '.iff')
 
                     IF FileLength(path) = -1
+                        PrintF('DEBUG: Image \s not found.\n', path)
                         -> Still didn't find an image file with standard
                         -> naming, so just show the empty screenshot
                         StrCopy(path, ldr.conf.empty_screenshot)
+                    ELSE
+                        PrintF('DEBUG: Found standard image: \s\n', path)
                     ENDIF
                 ENDIF
             Enable()
@@ -248,6 +252,7 @@ PROC main() HANDLE
                 ldr.img_loaded := curr_img
             ELSE
                 IF il.open(path)
+                    PrintF('DEBUG: Opening IFF: \s\n', path)
                     ->NEW bmark.init(10)
                     ->bmark.start()
                     IF il.parse_header() = FALSE

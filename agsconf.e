@@ -62,13 +62,10 @@ EXPORT OBJECT agsconf
     slideshow_delay_secs:INT -> = 0 (disabled)
     slideshow_start_index:INT -> = 1
     slideshow_end_index:INT -> = 7
-    exclude_block:PTR TO CHAR  -> Stores the raw string from config
 ENDOBJECT
 
 -> Initialize with default configuration.
 PROC init() OF agsconf
-    self.exclude_block := String(255)
-    StrCopy(self.exclude_block, '')
     self.background := String(128)
     self.font_name := String(32)
     self.text2_enabled := FALSE
@@ -124,7 +121,6 @@ PROC end() OF agsconf
     DisposeLink(self.screenshot_dir)
     DisposeLink(self.empty_screenshot)
     DisposeLink(self.missing_screenshot)
-    DisposeLink(self.exclude_block)
 ENDPROC
 
 PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
@@ -132,8 +128,6 @@ PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
 
     IF StrCmp(key, 'background')
         StrCopy(self.background, value)
-    ELSEIF StrCmp(key, 'exclude_paths')
-        StrCopy(self.exclude_block, value)
     ELSEIF StrCmp(key, 'font')
         StrCopy(self.font_name, value)
     ELSEIF StrCmp(key, 'empty_screenshot')

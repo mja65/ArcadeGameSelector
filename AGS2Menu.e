@@ -479,6 +479,40 @@ PROC get_item_path(path:LONG, suffix:PTR TO CHAR, dir_ptr:LONG) OF ags
     StrAdd(path, suffix)
 ENDPROC
 
+PROC is_path_excluded() OF ags
+    DEF p:PTR TO CHAR
+    DEF token[64]:STRING
+    DEF t_ptr:PTR TO CHAR
+    
+    IF self.conf.exclude_block = NIL THEN RETURN FALSE
+    IF EstrLen(self.conf.exclude_block) = 0 THEN RETURN FALSE
+
+    p := self.conf.exclude_block
+    
+    WHILE p[0] <> 0
+        t_ptr := token
+        
+        /* Build token: Stop at null or semicolon */
+        WHILE (p[0] <> 0) AND (p[0] <> 59)
+            t_ptr[0] := p[0]
+            t_ptr++
+            p++
+        ENDWHILE
+        
+        /* Terminate token and set E-string length */
+        t_ptr[0] := 0
+        SetStr(token, t_ptr - token)
+        
+        /* Check match */
+        IF EstrLen(token) > 0
+            IF InStr(self.nav.path, token) <> -1 THEN RETURN TRUE
+        ENDIF
+        
+        /* If we stopped at a semicolon, skip it for the next loop */
+        IF p[0] = 59 THEN p++
+    ENDWHILE
+ENDPROC FALSE
+
 PROC load_screenshot() OF ags
     DEF path[255]:STRING
     DEF run_path[255]:STRING
@@ -493,9 +527,15 @@ PROC load_screenshot() OF ags
 
 /* 2. Check if the .run file exists */
     IF FileLength(run_path) <> -1
-    /* It is a game entry! Load the actual screenshot */
-
-        self.get_item_path(path, '.iff', self.conf.screenshot_dir)
+        IF self.is_path_excluded()
+            /* Build local path: AGS2/Path/To/Game/1942.iff */
+            StrCopy(path, self.nav.path)
+            StrAdd(path, item.name)
+            StrAdd(path, '.iff')
+        ELSE
+            /* It is a game entry! Load the actual screenshot */
+            self.get_item_path(path, '.iff', self.conf.screenshot_dir)
+        ENDIF
         PrintF('DEBUG: Path built for image: \s\n', path)
         IF FileLength(path) = -1
             PrintF('DEBUG: Fallback Path for image: \s\n', self.conf.missing_screenshot)
@@ -539,9 +579,15 @@ PROC load_text() OF ags HANDLE
     StrAdd(run_path, '.run')
 
     IF FileLength(run_path) <> -1
-        /* CASE A: It's a game. Use the global GameText folder logic */
-        self.get_item_path(path, '.txt', self.conf.text_dir)
-
+        IF self.is_path_excluded()
+            /* Local: AGS2/Path/To/Game/1942.txt */
+            StrCopy(path, self.nav.path)
+            StrAdd(path, item.name)
+            StrAdd(path, '.txt')
+        ELSE
+            /* CASE A: It's a game. Use the global GameText folder logic */
+            self.get_item_path(path, '.txt', self.conf.text_dir)
+        ENDIF
     ELSE
         /* CASE B: It's a folder. Look for [ItemName].txt in the current menu folder */
         /* If item name is "Shooters", it looks for "AGS:Menu/Path/Shooters.txt" */
@@ -612,7 +658,14 @@ PROC load_text2() OF ags HANDLE
     StrAdd(run_path, '.run')
 
     IF FileLength(run_path) <> -1
-        self.get_item_path(path, '.txt', self.conf.text2_dir)
+        IF self.is_path_excluded()
+            /* Local: AGS2/Path/To/Game/1942.txt2 */
+            StrCopy(path, self.nav.path)
+            StrAdd(path, item.name)
+            StrAdd(path, '.txt2')
+        ELSE    
+            self.get_item_path(path, '.txt', self.conf.text2_dir)
+        ENDIF
     ELSE
         StrCopy(path, self.nav.path)
         StrAdd(path, item.name)

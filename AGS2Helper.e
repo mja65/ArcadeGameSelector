@@ -105,6 +105,11 @@ PROC main() HANDLE
     DEF indexstring[2]:STRING
     DEF have_indexed_image = 0
 
+    DEF skip_central = FALSE
+    DEF first_char_str[2]:STRING
+    DEF base_path[PATH_LEN]:STRING
+    DEF filename_ptr:PTR TO CHAR
+                
     -> Allocate the object that we share with the IRQ handler.
     ldr := NewM(SIZEOF loader, MEMF_PUBLIC OR MEMF_CLEAR)
     ldr.img_path := String(PATH_LEN)
@@ -185,6 +190,28 @@ PROC main() HANDLE
                 curr_img := ldr.img_num
                 have_indexed_image := 0
 
+                /* 1. Exclusion Check */
+                IF (StrLen(ldr.conf.exclude_central_location) > 0)
+                    IF InStr(ldr.img_path, ldr.conf.exclude_central_location) <> -1
+                        skip_central := TRUE
+                    ENDIF
+                ENDIF
+
+                /* 2. Determine Base Path (Redirect for .run files, which are the ones sent here) */
+                IF (StrLen(ldr.conf.screenshot_dir) > 0) AND (skip_central = FALSE)
+                    StrCopy(base_path, ldr.conf.screenshot_dir)
+                    
+                    filename_ptr := FilePart(ldr.img_path)
+                    first_char_str[0] := filename_ptr[0]
+                    first_char_str[1] := 0
+                    
+                    StrAdd(base_path, first_char_str)
+                    StrAdd(base_path, '/')
+                    StrAdd(base_path, filename_ptr)
+                ELSE
+                    StrCopy(base_path, ldr.img_path)
+                ENDIF
+
                 -> Only look for indexed screenshots if slideshow is enabled
                 IF ldr.conf.slideshow_delay_secs > 0
                     -> If the list item has changed, then we
@@ -209,7 +236,7 @@ PROC main() HANDLE
 
                     -> Try to find an indexed screenshot
                     FOR i := 0 TO slideshow_range_size
-                        StrCopy(path, ldr.img_path)
+                        StrCopy(path, base_path)
                         StringF(indexstring, '-\d', slideshow_index)
                         StrAdd(path, indexstring)
                         StrAdd(path, '.iff')
@@ -234,7 +261,7 @@ PROC main() HANDLE
 
                 -> If we haven't got an indexed image, fallback to standard file naming
                 IF have_indexed_image = 0
-                    StrCopy(path, ldr.img_path)
+                    StrCopy(path, base_path)
                     StrAdd(path, '.iff')
 
                     IF FileLength(path) = -1

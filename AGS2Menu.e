@@ -424,6 +424,7 @@ PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
     DEF skip_central = FALSE
     DEF first_letter[2]:STRING
 
+    DEF target_dir:PTR TO CHAR
     item := self.nav.items[self.current_item + self.offset]
     
 /* 1. Exclusion Check */
@@ -440,10 +441,16 @@ PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
         PrintF('  Result:       \s\n', IF skip_central THEN 'EXCLUDED (Using Local)' ELSE 'NOT EXCLUDED (Using Central)')
     ENDIF
 
-    /* 2. Redirection: ONLY for .txt AND ONLY for .run items (AGSNAV_TYPE_RUN) */
-    IF StrCmp(suffix, '.txt') AND (item.type = AGSNAV_TYPE_RUN) AND (StrLen(self.conf.text_dir) > 0) AND (skip_central = FALSE)
-        StrCopy(path, self.conf.text_dir)
+    /* 2. Determine target directory based on suffix */
+    target_dir := NIL
+    IF StrCmp(suffix, '.txt')
+        target_dir := self.conf.text_dir
+    ENDIF
 
+    /* 3. Redirection Logic */
+
+    IF (target_dir <> NIL) AND (item.type = AGSNAV_TYPE_RUN) AND (StrLen(target_dir) > 0) AND (skip_central = FALSE)
+        StrCopy(path, target_dir)
         /* Get the first letter of the item name */
         first_letter[0] := item.name[0]
         first_letter[1] := 0

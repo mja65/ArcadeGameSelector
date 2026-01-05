@@ -10,14 +10,12 @@ MODULE 'dos/exall'
 
 EXPORT CONST AGSNAV_ERROR = "AGSM"
 EXPORT ENUM AGSNAV_ERR_LOCK = 1, AGSNAV_ERR_EXALL
+EXPORT ENUM AGSNAV_TYPE_DIR = 1, AGSNAV_TYPE_FILE = 2, AGSNAV_TYPE_RUN = 3
 
 EXPORT PROC agsnav_strerror(num:LONG) IS ListItem([
         'Couldn''t lock directory',
         'Error reading directory'
     ], num - 1)
-
-
-EXPORT ENUM AGSNAV_TYPE_DIR = 1, AGSNAV_TYPE_FILE = 2
 
 EXPORT OBJECT agsnav_item
     name -> STRING
@@ -238,7 +236,12 @@ PROC read_dir() OF agsnav HANDLE
     current := first
     WHILE current
         IF current[0] = "F"
-            type := AGSNAV_TYPE_FILE
+            /* Check the extension of the original name to set the correct type */
+            IF str_ends_with(current + 1, '.run')
+                type := AGSNAV_TYPE_RUN
+            ELSE
+                type := AGSNAV_TYPE_FILE
+            ENDIF
             StrCopy(name, current + 1, EstrLen(current) - 5)
         ELSE
             type := AGSNAV_TYPE_DIR

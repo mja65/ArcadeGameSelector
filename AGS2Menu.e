@@ -421,11 +421,48 @@ ENDPROC
 
 PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
     DEF item:PTR TO agsnav_item
+    DEF skip_central = FALSE
+    DEF first_letter[2]:STRING
 
     item := self.nav.items[self.current_item + self.offset]
-    StrCopy(path, self.nav.path)
-    StrAdd(path, item.name)
-    StrAdd(path, suffix)
+    
+/* 1. Exclusion Check */
+    IF (StrLen(self.conf.exclude_central_location) > 0)
+        IF InStr(self.nav.path, self.conf.exclude_central_location) <> -1
+            skip_central := TRUE
+        ENDIF
+    ENDIF
+
+    IF StrCmp(suffix, '.txt')
+        PrintF('DEBUG: Text Check\n')
+        PrintF('  Current Path: "\s"\n', self.nav.path)
+        PrintF('  Excl Pattern: "\s"\n', self.conf.exclude_central_location)
+        PrintF('  Result:       \s\n', IF skip_central THEN 'EXCLUDED (Using Local)' ELSE 'NOT EXCLUDED (Using Central)')
+    ENDIF
+
+    /* 2. Redirection: ONLY for .txt AND ONLY for .run items (AGSNAV_TYPE_RUN) */
+    IF StrCmp(suffix, '.txt') AND (item.type = AGSNAV_TYPE_RUN) AND (StrLen(self.conf.text_dir) > 0) AND (skip_central = FALSE)
+        StrCopy(path, self.conf.text_dir)
+
+        /* Get the first letter of the item name */
+        first_letter[0] := item.name[0]
+        first_letter[1] := 0
+        
+        StrAdd(path, first_letter)
+        StrAdd(path, '/')
+        StrAdd(path, item.name)
+        StrAdd(path, suffix)
+
+    ELSE
+        /* .ags menus, local .run files, and excluded items stay local */
+        StrCopy(path, self.nav.path)
+        StrAdd(path, item.name)
+        StrAdd(path, suffix)
+    ENDIF
+
+    PrintF('DEBUG: Text for "\s" (Type: \d, Excl: \s)\n',item.name, item.type, IF skip_central THEN 'YES' ELSE 'NO')
+    PrintF('  Path: "\s"\n', path)
+
 ENDPROC
 
 PROC load_screenshot() OF ags

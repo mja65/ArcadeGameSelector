@@ -56,6 +56,7 @@ EXPORT OBJECT agsconf
     screenshot_dir:LONG -> PTR TO STRING
     text_dir:LONG -> PTR TO STRING
     exclude_central_location:LONG -> PTR TO STRING
+    non_central_picture_suffix[20]:ARRAY OF CHAR
 ENDOBJECT
 
 -> Initialize with default configuration.
@@ -118,6 +119,8 @@ PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
     PrintF('DEBUG: Trying to set Key: "\s" to Value: "\s"\n', key, value)
     IF StrCmp(key, 'background')
         StrCopy(self.background, value)
+    ELSEIF StrCmp(key, 'non_central_picture_suffix')
+        StrCopy(self.non_central_picture_suffix, value)
     ELSEIF StrCmp(key, 'font')
         StrCopy(self.font_name, value)
     ELSEIF StrCmp(key, 'empty_screenshot')

@@ -614,6 +614,7 @@ PROC main() HANDLE
     IF (lowlevelbase := OpenLibrary('lowlevel.library', 0)) = NIL THEN Raise("LOWL")
 
     NEW conf.init()
+    conf.non_central_picture_suffix[0] := 0
     conf.read('AGS:AGS2.conf')
 
     IF SetJoyPortAttrsA(1, [SJA_TYPE, SJA_TYPE_JOYSTK, 0]) = FALSE

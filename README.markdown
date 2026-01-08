@@ -3,6 +3,8 @@ ArcadeGameSelector 2
 
 This is a fork of the ArcadeGameSelector 2 program from MagerValp. Probably now most known for its use in the AGS distribution. 
 
+However, the existing version results in significant duplication of files where the same game is stored in multiple menu. As an example, if "Lotus Turbo Challenge 2" is stored under a menu "l", a year "1990", a category "driving games", number of players "2",  publisher "Gremlin Graphics", Developer "Magnetic Fields" and Amiga Chipset "OCS/ECS", then there will need to be 7 copies of both the screenshots and the descriptive text.
+
 Note this is WIP and will have issues! 
 
 It is intended to fix some issues with the existing program such as:
@@ -10,11 +12,16 @@ It is intended to fix some issues with the existing program such as:
 * Fixing issue where screenshots do not load properly if you run a game prior to starting it
 * Allowing for consolidation of screenshots and text descriptions into single folders so that where games and demos are in multiple categories there is no need to have the same files duplicated
 
+This introduces a limitation that there can be no duplication of programs in different menus unless they are the same program. An example might be if you have "Lotus Turbo Challenge" in two different menus it will use the same screenshot and text as it will assume it's the same game. If it happens to be a different variation it will still pick up the same text and image (unless you include variant details in the name of the program)
+
+If you want to avoid this then you can add key words for menus that will operate per the previous version where all games and text is stored at the menu level.
+
 Extra settings needed:
 
 * screenshot_dir= (path to folder with trailing /)
 * text_dir= (path to folder with trailing /)
-
+* non_central_picture_suffix= (suffix to include for images not stored in the central folder)
+* exclude_central_location = (list of items delimited by semi-colon for menu items to exclude from the cenrtal folder)
 
 This was done with the assistance of AI.....
 

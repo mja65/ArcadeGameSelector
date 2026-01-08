@@ -470,28 +470,28 @@ PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
     item := self.nav.items[self.current_item + self.offset]
     
 /* 1. Exclusion Check */
+    skip_central := FALSE
     IF (StrLen(self.conf.exclude_central_location) > 0)
         IF InStr(self.nav.path, self.conf.exclude_central_location) <> -1
             skip_central := TRUE
         ENDIF
     ENDIF
 
-    IF StrCmp(suffix, '.txt')
-        PrintF('DEBUG: Text Check\n')
-        PrintF('  Current Path: "\s"\n', self.nav.path)
-        PrintF('  Excl Pattern: "\s"\n', self.conf.exclude_central_location)
-        PrintF('  Result:       \s\n', IF skip_central THEN 'EXCLUDED (Using Local)' ELSE 'NOT EXCLUDED (Using Central)')
-    ENDIF
-
     /* 2. Determine target directory based on suffix */
     target_dir := NIL
-    IF StrCmp(suffix, '.txt')
-        target_dir := self.conf.text_dir
+    IF skip_central = FALSE
+        IF StrCmp(suffix, '.txt')
+            target_dir := self.conf.text_dir
+        ELSEIF StrLen(suffix) = 0
+            /* Empty suffix = Screenshot request */
+            target_dir := self.conf.screenshot_dir
+        ENDIF    
     ENDIF
 
     /* 3. Redirection Logic */
-
+    /* We ONLY redirect if it's a RUN item and we have a target directory */
     IF (target_dir <> NIL) AND (item.type = AGSNAV_TYPE_RUN) AND (StrLen(target_dir) > 0) AND (skip_central = FALSE)
+        PrintF('DEBUG: Redirecting "\s" to Central (Suffix: "\s")\n', item.name, suffix)
         StrCopy(path, target_dir)
         /* Get the first letter of the item name */
         first_letter[0] := item.name[0]
@@ -503,14 +503,29 @@ PROC get_item_path(path:LONG, suffix:PTR TO CHAR) OF ags
         StrAdd(path, suffix)
 
     ELSE
-        /* .ags menus, local .run files, and excluded items stay local */
+        /* LOGIC TRACE for why we are staying local */
+        IF item.type <> AGSNAV_TYPE_RUN
+            PrintF('DEBUG: Local Path: "\s" is a MENU/DIR\n', item.name)
+        ELSEIF skip_central
+            PrintF('DEBUG: Local Path: "\s" is EXCLUDED\n', item.name)
+        ELSE
+            PrintF('DEBUG: Local Path: Using standard location for "\s"\n', item.name)
+        ENDIF
+        /* Menus (AGSNAV_TYPE_DIR) and local files fall through here */
         StrCopy(path, self.nav.path)
         StrAdd(path, item.name)
+
+        /* If this is a screenshot request (empty suffix), add the local-only extension */
+        IF (StrLen(suffix) = 0) AND (StrLen(self.conf.non_central_picture_suffix) > 0)
+            PrintF('DEBUG: Applying non_central_picture_suffix: "\s"\n', self.conf.non_central_picture_suffix)
+            StrAdd(path, self.conf.non_central_picture_suffix)
+        ENDIF
+
         StrAdd(path, suffix)
+    
     ENDIF
 
-    PrintF('DEBUG: Text for "\s" (Type: \d, Excl: \s)\n',item.name, item.type, IF skip_central THEN 'YES' ELSE 'NO')
-    PrintF('  Path: "\s"\n', path)
+    PrintF('DEBUG: Final Path: "\s"\n', path)
 
 ENDPROC
 

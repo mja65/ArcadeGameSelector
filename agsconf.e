@@ -56,7 +56,7 @@ EXPORT OBJECT agsconf
     screenshot_dir:LONG -> PTR TO STRING
     text_dir:LONG -> PTR TO STRING
     exclude_central_location:LONG -> PTR TO STRING
-    non_central_picture_suffix[20]:ARRAY OF CHAR
+    non_central_picture_suffix:LONG -> PTR TO STRING
 ENDOBJECT
 
 -> Initialize with default configuration.
@@ -67,7 +67,8 @@ PROC init() OF agsconf
     self.menu_folder := String(128)
     self.screenshot_dir := String(128)
     self.text_dir := String(128)
-    self.exclude_central_location := String(255)
+    self.exclude_central_location := String(128)
+    self.non_central_picture_suffix := String(32)
 
     StrCopy(self.background, 'AGS:AGS2Background.iff')
     self.mode := AGSCONF_AUTODETECT
@@ -112,6 +113,7 @@ PROC end() OF agsconf
     DisposeLink(self.screenshot_dir)
     DisposeLink(self.text_dir)
     DisposeLink(self.exclude_central_location)
+    DisposeLink(self.non_central_picture_suffix)
 ENDPROC
 
 PROC set_value(key:PTR TO CHAR, value:PTR TO CHAR) OF agsconf
